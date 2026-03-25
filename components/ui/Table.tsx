@@ -1,3 +1,5 @@
+"use client"
+
 import React from "react"
 
 interface TableProps {
@@ -35,22 +37,27 @@ export function Th({ children, className = "" }: { children: React.ReactNode; cl
 export function Tr({
   children,
   onClick,
+  href,
   className = "",
 }: {
   children: React.ReactNode
   onClick?: () => void
+  href?: string
   className?: string
 }) {
+  const handleClick = onClick ?? (href ? () => { window.location.href = href } : undefined)
+  const clickable = !!handleClick
+
   return (
     <tr
-      className={`transition-colors ${onClick ? "cursor-pointer" : ""} ${className}`}
+      className={`transition-colors ${clickable ? "cursor-pointer" : ""} ${className}`}
       style={{ borderBottom: "1px solid #1E2130" }}
-      onClick={onClick}
+      onClick={handleClick}
       onMouseEnter={(e) => {
-        if (onClick) (e.currentTarget as HTMLElement).style.background = "#111116"
+        if (clickable) (e.currentTarget as HTMLElement).style.background = "#111116"
       }}
       onMouseLeave={(e) => {
-        if (onClick) (e.currentTarget as HTMLElement).style.background = "transparent"
+        if (clickable) (e.currentTarget as HTMLElement).style.background = "transparent"
       }}
     >
       {children}

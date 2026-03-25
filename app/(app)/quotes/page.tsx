@@ -59,7 +59,7 @@ export default async function QuotesPage() {
             </Thead>
             <Tbody>
               {quotes.map((quote) => (
-                <Tr key={quote.id} onClick={() => (window.location.href = `/quotes/${quote.id}`)}>
+                <Tr key={quote.id} href={`/quotes/${quote.id}`}>
                   <Td>
                     <span className="font-mono text-xs font-semibold" style={{ color: "#4B8EFF" }}>
                       {quote.quoteNumber}

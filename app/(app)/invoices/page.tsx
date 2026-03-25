@@ -81,7 +81,7 @@ export default async function InvoicesPage() {
               {invoices.map((invoice) => (
                 <Tr
                   key={invoice.id}
-                  onClick={() => (window.location.href = `/invoices/${invoice.id}`)}
+                  href={`/invoices/${invoice.id}`}
                 >
                   <Td>
                     <span className="font-mono text-xs font-semibold" style={{ color: "#4B8EFF" }}>
