@@ -9,6 +9,9 @@ type BadgeVariant =
   | "cancelled"
   | "active"
   | "inactive"
+  | "concept"
+  | "afgerond"
+  | "gepauzeerd"
 
 const styles: Record<BadgeVariant, { bg: string; color: string }> = {
   draft: { bg: "#1E2130", color: "#6B82A8" },
@@ -21,6 +24,9 @@ const styles: Record<BadgeVariant, { bg: string; color: string }> = {
   cancelled: { bg: "#1E1010", color: "#888888" },
   active: { bg: "#0A2A1A", color: "#2DD68A" },
   inactive: { bg: "#1E2130", color: "#6B82A8" },
+  concept: { bg: "#1E2130", color: "#6B82A8" },
+  afgerond: { bg: "#0A2A1A", color: "#2DD68A" },
+  gepauzeerd: { bg: "#1E1A10", color: "#F5A623" },
 }
 
 const labels: Record<string, string> = {
@@ -34,6 +40,9 @@ const labels: Record<string, string> = {
   cancelled: "Geannuleerd",
   active: "Actief",
   inactive: "Inactief",
+  concept: "Concept",
+  afgerond: "Afgerond",
+  gepauzeerd: "Gepauzeerd",
 }
 
 interface BadgeProps {

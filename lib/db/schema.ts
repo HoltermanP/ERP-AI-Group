@@ -112,11 +112,82 @@ export const invoiceLines = pgTable("invoice_lines", {
   sortOrder: integer("sort_order").default(0),
 })
 
+export const employees = pgTable("employees", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email"),
+  role: text("role"),
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }).default("0"),
+  status: text("status").default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  projectNumber: text("project_number").unique().notNull(),
+  customerId: integer("customer_id").references(() => customers.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  status: text("status").default("concept"),
+  startDate: date("start_date"),
+  endDate: date("end_date"),
+  budgetHours: decimal("budget_hours", { precision: 10, scale: 2 }).default("0"),
+  budgetCosts: decimal("budget_costs", { precision: 10, scale: 2 }).default("0"),
+  budgetRevenue: decimal("budget_revenue", { precision: 10, scale: 2 }).default("0"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+export const projectEmployees = pgTable("project_employees", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: "cascade" }),
+  employeeId: integer("employee_id").references(() => employees.id, { onDelete: "cascade" }),
+  role: text("role"),
+  budgetHours: decimal("budget_hours", { precision: 10, scale: 2 }).default("0"),
+  addedAt: timestamp("added_at").defaultNow(),
+})
+
+export const projectHours = pgTable("project_hours", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: "cascade" }),
+  employeeId: integer("employee_id").references(() => employees.id),
+  date: date("date").notNull(),
+  hours: decimal("hours", { precision: 6, scale: 2 }).notNull(),
+  description: text("description"),
+  invoiced: boolean("invoiced").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+})
+
+export const projectCosts = pgTable("project_costs", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: "cascade" }),
+  description: text("description").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  category: text("category"),
+  date: date("date").notNull(),
+  invoiced: boolean("invoiced").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+})
+
+export const projectRevenue = pgTable("project_revenue", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: "cascade" }),
+  description: text("description").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  date: date("date").notNull(),
+  type: text("type").default("actual"),
+  invoiceId: integer("invoice_id").references(() => invoices.id),
+  createdAt: timestamp("created_at").defaultNow(),
+})
+
 // Relations
 export const customersRelations = relations(customers, ({ many }) => ({
   contacts: many(customerContacts),
   quotes: many(quotes),
   invoices: many(invoices),
+  projects: many(projects),
 }))
 
 export const customerContactsRelations = relations(customerContacts, ({ one }) => ({
@@ -161,6 +232,62 @@ export const invoiceLinesRelations = relations(invoiceLines, ({ one }) => ({
   }),
 }))
 
+export const employeesRelations = relations(employees, ({ many }) => ({
+  projectEmployees: many(projectEmployees),
+  hours: many(projectHours),
+}))
+
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [projects.customerId],
+    references: [customers.id],
+  }),
+  projectEmployees: many(projectEmployees),
+  hours: many(projectHours),
+  costs: many(projectCosts),
+  revenue: many(projectRevenue),
+}))
+
+export const projectEmployeesRelations = relations(projectEmployees, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectEmployees.projectId],
+    references: [projects.id],
+  }),
+  employee: one(employees, {
+    fields: [projectEmployees.employeeId],
+    references: [employees.id],
+  }),
+}))
+
+export const projectHoursRelations = relations(projectHours, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectHours.projectId],
+    references: [projects.id],
+  }),
+  employee: one(employees, {
+    fields: [projectHours.employeeId],
+    references: [employees.id],
+  }),
+}))
+
+export const projectCostsRelations = relations(projectCosts, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectCosts.projectId],
+    references: [projects.id],
+  }),
+}))
+
+export const projectRevenueRelations = relations(projectRevenue, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectRevenue.projectId],
+    references: [projects.id],
+  }),
+  invoice: one(invoices, {
+    fields: [projectRevenue.invoiceId],
+    references: [invoices.id],
+  }),
+}))
+
 export type CompanyProfile = typeof companyProfile.$inferSelect
 export type NewCompanyProfile = typeof companyProfile.$inferInsert
 export type Customer = typeof customers.$inferSelect
@@ -175,3 +302,15 @@ export type Invoice = typeof invoices.$inferSelect
 export type NewInvoice = typeof invoices.$inferInsert
 export type InvoiceLine = typeof invoiceLines.$inferSelect
 export type NewInvoiceLine = typeof invoiceLines.$inferInsert
+export type Employee = typeof employees.$inferSelect
+export type NewEmployee = typeof employees.$inferInsert
+export type Project = typeof projects.$inferSelect
+export type NewProject = typeof projects.$inferInsert
+export type ProjectEmployee = typeof projectEmployees.$inferSelect
+export type NewProjectEmployee = typeof projectEmployees.$inferInsert
+export type ProjectHour = typeof projectHours.$inferSelect
+export type NewProjectHour = typeof projectHours.$inferInsert
+export type ProjectCost = typeof projectCosts.$inferSelect
+export type NewProjectCost = typeof projectCosts.$inferInsert
+export type ProjectRevenue = typeof projectRevenue.$inferSelect
+export type NewProjectRevenue = typeof projectRevenue.$inferInsert

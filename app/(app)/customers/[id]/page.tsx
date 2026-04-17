@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { getCustomer } from "@/lib/actions/customers"
+import { getProjectsByCustomer } from "@/lib/actions/projects"
 import { Card, CardHeader, CardBody } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { ContactLogItem } from "@/components/customers/ContactLogItem"
 import { ContactForm } from "@/components/customers/ContactForm"
 import { formatCurrency, formatDate } from "@/lib/utils/formatters"
-import { Pencil, Mail, Phone, MapPin, Building2 } from "lucide-react"
+import { Pencil, Mail, Phone, MapPin, Building2, Plus } from "lucide-react"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -15,7 +16,10 @@ interface PageProps {
 
 export default async function CustomerDetailPage({ params }: PageProps) {
   const { id } = await params
-  const customer = await getCustomer(parseInt(id))
+  const [customer, projects] = await Promise.all([
+    getCustomer(parseInt(id)),
+    getProjectsByCustomer(parseInt(id)),
+  ])
 
   if (!customer) notFound()
 
@@ -87,6 +91,41 @@ export default async function CustomerDetailPage({ params }: PageProps) {
                     {customer.kvk && <div>KvK: {customer.kvk}</div>}
                     {customer.btw && <div>BTW: {customer.btw}</div>}
                   </div>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+
+          {/* Projects */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-sm" style={{ color: "#F4F6FA" }}>
+                  Projecten ({projects.length})
+                </h2>
+                <Link href={`/projects/new?customerId=${customer.id}`}>
+                  <button className="flex items-center gap-1 text-xs" style={{ color: "#4B8EFF" }}>
+                    <Plus size={12} />Nieuw
+                  </button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardBody className="!px-0 !py-0">
+              {!projects.length ? (
+                <p className="px-6 py-4 text-sm" style={{ color: "#6B82A8" }}>Geen projecten</p>
+              ) : (
+                <div className="divide-y" style={{ borderColor: "#1E2130" }}>
+                  {projects.map((p) => (
+                    <Link key={p.id} href={`/projects/${p.id}`}>
+                      <div className="px-6 py-3 hover:bg-[#16161C] transition-colors">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-mono" style={{ color: "#4B8EFF" }}>{p.projectNumber}</span>
+                          <Badge status={p.status || "concept"} />
+                        </div>
+                        <p className="text-sm font-medium mt-0.5" style={{ color: "#F4F6FA" }}>{p.name}</p>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
               )}
             </CardBody>

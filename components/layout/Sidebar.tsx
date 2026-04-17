@@ -10,14 +10,18 @@ import {
   Receipt,
   Settings,
   X,
+  FolderKanban,
+  UserCog,
 } from "lucide-react"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/customers", label: "Klanten", icon: Users },
+  { href: "/projects", label: "Projecten", icon: FolderKanban },
   { href: "/contacts", label: "Contacten", icon: MessageSquare },
   { href: "/quotes", label: "Offertes", icon: FileText },
   { href: "/invoices", label: "Facturen", icon: Receipt },
+  { href: "/employees", label: "Medewerkers", icon: UserCog },
   { href: "/settings", label: "Instellingen", icon: Settings },
 ]
 
