@@ -1,11 +1,22 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { invoices, invoiceLines, quoteLines, quotes, type NewInvoice, type NewInvoiceLine } from "@/lib/db/schema"
+import {
+  invoices,
+  invoiceLines,
+  quoteLines,
+  quotes,
+  type Invoice,
+  type NewInvoice,
+  type NewInvoiceLine,
+} from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { generateInvoiceNumber } from "@/lib/utils/numbering"
 import { calculateTotals } from "@/lib/utils/calculations"
+import { getCompanyProfile } from "@/lib/actions/company"
+import { buildDefaultInvoiceTerms } from "@/lib/invoice-terms"
+import { scaleQuoteLinesForInstallment, type QuoteLineInput } from "@/lib/utils/quote-installments"
 
 export async function getInvoices() {
   try {
@@ -42,6 +53,12 @@ export async function createInvoice(
   lines: Omit<NewInvoiceLine, "invoiceId" | "lineTotal">[]
 ) {
   try {
+    const company = await getCompanyProfile()
+    const terms =
+      data.terms !== undefined && data.terms !== null && String(data.terms).trim() !== ""
+        ? String(data.terms).trim()
+        : buildDefaultInvoiceTerms(company)
+
     const invoiceNumber = await generateInvoiceNumber()
     const lineItems = lines.map((l) => ({
       quantity: parseFloat(String(l.quantity)),
@@ -59,6 +76,7 @@ export async function createInvoice(
       .insert(invoices)
       .values({
         ...data,
+        terms,
         invoiceNumber,
         dueDate: data.dueDate || dueDate.toISOString().split("T")[0],
         subtotal: String(totals.subtotal),
@@ -89,7 +107,14 @@ export async function createInvoice(
   }
 }
 
-export async function createInvoiceFromQuote(quoteId: number, customerId: number) {
+export async function createInvoiceFromQuote(
+  quoteId: number,
+  customerId: number,
+  options?: { installmentCount?: number }
+): Promise<
+  | { success: true; data: Invoice; invoices?: Invoice[] }
+  | { success: false; error: string }
+> {
   try {
     const lines = await db.query.quoteLines.findMany({
       where: eq(quoteLines.quoteId, quoteId),
@@ -102,7 +127,7 @@ export async function createInvoiceFromQuote(quoteId: number, customerId: number
 
     if (!quote) return { success: false, error: "Offerte niet gevonden" }
 
-    const lineItems = lines.map((l) => ({
+    const lineItems: QuoteLineInput[] = lines.map((l) => ({
       description: l.description,
       quantity: l.quantity || "1",
       unit: l.unit || "stuks",
@@ -110,18 +135,57 @@ export async function createInvoiceFromQuote(quoteId: number, customerId: number
       btwPercentage: l.btwPercentage || "21",
     }))
 
-    return createInvoice(
-      {
-        quoteId,
-        customerId,
-        title: quote.title,
-        status: "draft",
-        invoiceDate: new Date().toISOString().split("T")[0],
-        notes: quote.notes,
-        terms: "Betaling binnen 30 dagen na factuurdatum.",
-      },
-      lineItems
-    )
+    const company = await getCompanyProfile()
+    const terms = buildDefaultInvoiceTerms(company)
+    const rawCount = options?.installmentCount ?? 1
+    const installmentCount = Math.min(12, Math.max(1, Math.floor(rawCount)))
+
+    if (installmentCount <= 1) {
+      const single = await createInvoice(
+        {
+          quoteId,
+          customerId,
+          title: quote.title,
+          status: "draft",
+          invoiceDate: new Date().toISOString().split("T")[0],
+          notes: quote.notes ?? undefined,
+          terms,
+        },
+        lineItems
+      )
+      if (!single.success || !single.data) {
+        return { success: false, error: single.error || "Kon factuur niet aanmaken" }
+      }
+      return { success: true, data: single.data }
+    }
+
+    const created: Invoice[] = []
+    const baseNotes = quote.notes?.trim() || ""
+    for (let i = 0; i < installmentCount; i++) {
+      const scaled = scaleQuoteLinesForInstallment(lineItems, i, installmentCount)
+      const title = `${quote.title} (deeltermijn ${i + 1}/${installmentCount})`
+      const refNote = `Gebaseerd op offerte ${quote.quoteNumber}.`
+      const notes = [baseNotes, refNote].filter(Boolean).join("\n\n")
+
+      const result = await createInvoice(
+        {
+          quoteId,
+          customerId,
+          title,
+          status: "draft",
+          invoiceDate: new Date().toISOString().split("T")[0],
+          notes,
+          terms,
+        },
+        scaled
+      )
+      if (!result.success || !result.data) {
+        return { success: false, error: result.error || "Kon deeltermijn niet aanmaken" }
+      }
+      created.push(result.data)
+    }
+
+    return { success: true, data: created[0], invoices: created }
   } catch (error) {
     console.error("Error creating invoice from quote:", error)
     return { success: false, error: "Kon factuur niet aanmaken vanuit offerte" }

@@ -5,7 +5,7 @@ import {
   View,
   StyleSheet,
 } from "@react-pdf/renderer"
-import type { Invoice, InvoiceLine, Customer, CompanyProfile } from "@/lib/db/schema"
+import type { Invoice, InvoiceLine, Customer, CompanyProfile, Quote } from "@/lib/db/schema"
 
 const styles = StyleSheet.create({
   page: {
@@ -66,8 +66,24 @@ function fmtDate(val: Date | string | null | undefined): string {
 }
 
 interface InvoicePDFProps {
-  invoice: Invoice & { lines?: InvoiceLine[]; customer?: Customer | null }
+  invoice: Invoice & { lines?: InvoiceLine[]; customer?: Customer | null; quote?: Quote | null }
   company: CompanyProfile | null
+}
+
+function btwByRate(lines: InvoiceLine[] | undefined): { pct: string; base: number; amount: number }[] {
+  if (!lines?.length) return []
+  const map = new Map<string, { base: number; amount: number }>()
+  for (const line of lines) {
+    const pct = String(line.btwPercentage ?? "0")
+    const base = parseFloat(String(line.lineTotal)) || 0
+    const rate = (parseFloat(pct) || 0) / 100
+    const amount = base * rate
+    const cur = map.get(pct) || { base: 0, amount: 0 }
+    map.set(pct, { base: cur.base + base, amount: cur.amount + amount })
+  }
+  return Array.from(map.entries())
+    .map(([pct, v]) => ({ pct, ...v }))
+    .sort((a, b) => parseFloat(a.pct) - parseFloat(b.pct))
 }
 
 export function InvoicePDF({ invoice, company }: InvoicePDFProps) {
@@ -86,22 +102,30 @@ export function InvoicePDF({ invoice, company }: InvoicePDFProps) {
           </View>
           <View>
             <Text style={styles.docTitle}>FACTUUR</Text>
-            <Text style={styles.docMeta}>{invoice.invoiceNumber}</Text>
-            <Text style={styles.docMeta}>{fmtDate(invoice.invoiceDate)}</Text>
+            <Text style={styles.docMeta}>Factuurnummer: {invoice.invoiceNumber}</Text>
+            <Text style={styles.docMeta}>Factuurdatum: {fmtDate(invoice.invoiceDate)}</Text>
             {invoice.dueDate && <Text style={styles.docMeta}>Vervaldatum: {fmtDate(invoice.dueDate)}</Text>}
+            {invoice.quote?.quoteNumber && (
+              <Text style={styles.docMeta}>Offerte: {invoice.quote.quoteNumber}</Text>
+            )}
           </View>
         </View>
         <View style={styles.divider} />
 
         <View style={styles.section}>
           <View style={styles.infoBlock}>
-            <Text style={styles.infoLabel}>Factuuren aan</Text>
+            <Text style={styles.infoLabel}>Factuur aan</Text>
             <Text style={styles.infoText}>
               {invoice.customer?.companyName}{"\n"}
               {invoice.customer?.contactName ? invoice.customer.contactName + "\n" : ""}
               {invoice.customer?.address ? invoice.customer.address + "\n" : ""}
-              {invoice.customer?.postalCode} {invoice.customer?.city}{"\n"}
-              {invoice.customer?.btw ? "BTW: " + invoice.customer.btw : ""}
+              {invoice.customer?.postalCode} {invoice.customer?.city}
+              {invoice.customer?.country && invoice.customer.country !== "Nederland"
+                ? "\n" + invoice.customer.country
+                : ""}
+              {"\n"}
+              {invoice.customer?.kvk ? "KvK: " + invoice.customer.kvk + "\n" : ""}
+              {invoice.customer?.btw ? "BTW-nummer: " + invoice.customer.btw : ""}
             </Text>
           </View>
           <View style={styles.infoBlock}>
@@ -111,8 +135,9 @@ export function InvoicePDF({ invoice, company }: InvoicePDFProps) {
               {company?.address ? company.address + "\n" : ""}
               {company?.postalCode} {company?.city}{"\n"}
               {company?.kvk ? "KvK: " + company.kvk + "\n" : ""}
-              {company?.btw ? "BTW: " + company.btw + "\n" : ""}
+              {company?.btw ? "BTW-nummer: " + company.btw + "\n" : ""}
               {company?.iban ? "IBAN: " + company.iban : ""}
+              {company?.country && company.country !== "Nederland" ? "\n" + company.country : ""}
             </Text>
           </View>
         </View>
@@ -127,7 +152,7 @@ export function InvoicePDF({ invoice, company }: InvoicePDFProps) {
           <Text style={[styles.tableHeaderText, styles.colUnit]}>Eenheid</Text>
           <Text style={[styles.tableHeaderText, styles.colPrice]}>Stukprijs</Text>
           <Text style={[styles.tableHeaderText, styles.colBtw]}>BTW%</Text>
-          <Text style={[styles.tableHeaderText, styles.colTotal]}>Totaal</Text>
+          <Text style={[styles.tableHeaderText, styles.colTotal]}>Bedrag excl. BTW</Text>
         </View>
         {invoice.lines?.map((line, i) => (
           <View key={i} style={[styles.tableRow, i % 2 === 1 ? { backgroundColor: "#FAFBFF" } : {}]}>
@@ -142,36 +167,60 @@ export function InvoicePDF({ invoice, company }: InvoicePDFProps) {
 
         <View style={styles.totalsBlock}>
           <View style={styles.totalsRow}>
-            <Text style={styles.totalsLabel}>Subtotaal</Text>
+            <Text style={styles.totalsLabel}>Totaal excl. BTW</Text>
             <Text style={styles.totalsValue}>{fmt(invoice.subtotal)}</Text>
           </View>
-          <View style={styles.totalsRow}>
-            <Text style={styles.totalsLabel}>BTW ({invoice.btwPercentage}%)</Text>
-            <Text style={styles.totalsValue}>{fmt(invoice.btwAmount)}</Text>
-          </View>
+          {(() => {
+            const rows = btwByRate(invoice.lines)
+            if (rows.length <= 1) {
+              return (
+                <View style={styles.totalsRow}>
+                  <Text style={styles.totalsLabel}>
+                    BTW {rows[0] ? `(${rows[0].pct}%)` : `(${invoice.btwPercentage}%)`}
+                  </Text>
+                  <Text style={styles.totalsValue}>{fmt(invoice.btwAmount)}</Text>
+                </View>
+              )
+            }
+            return rows.map((r) => (
+              <View key={r.pct} style={styles.totalsRow}>
+                <Text style={styles.totalsLabel}>
+                  BTW {r.pct}% over {fmt(r.base)}
+                </Text>
+                <Text style={styles.totalsValue}>{fmt(r.amount)}</Text>
+              </View>
+            ))
+          })()}
           <View style={styles.totalsDivider} />
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Totaal</Text>
+            <Text style={styles.totalLabel}>Totaal te betalen (incl. BTW)</Text>
             <Text style={styles.totalValue}>{fmt(invoice.total)}</Text>
           </View>
         </View>
 
-        {(invoice.notes || invoice.terms) && (
-          <View style={styles.notes}>
-            {invoice.notes && (
-              <>
-                <Text style={styles.notesLabel}>Notities</Text>
-                <Text style={styles.notesText}>{invoice.notes}</Text>
-              </>
-            )}
-            {invoice.terms && (
-              <>
-                <Text style={[styles.notesLabel, { marginTop: 8 }]}>Betalingsvoorwaarden</Text>
-                <Text style={styles.notesText}>{invoice.terms}</Text>
-              </>
-            )}
-          </View>
-        )}
+        <View style={[styles.notes, { marginTop: 16 }]}>
+          <Text style={styles.notesLabel}>Betalingsinstructie</Text>
+          <Text style={styles.notesText}>
+            {invoice.terms ||
+              (company?.iban
+                ? `Graag het totaalbedrag vóór de vervaldatum overmaken op ${company.iban} onder vermelding van het factuurnummer.`
+                : "Betaal voor de vervaldatum onder vermelding van het factuurnummer.")}
+          </Text>
+          {invoice.notes && (
+            <>
+              <Text style={[styles.notesLabel, { marginTop: 10 }]}>Toelichting / referentie</Text>
+              <Text style={styles.notesText}>{invoice.notes}</Text>
+            </>
+          )}
+        </View>
+
+        <View style={{ marginTop: 12, padding: 10, borderWidth: 0.5, borderColor: "#E0E6F0", borderRadius: 4 }}>
+          <Text style={{ fontSize: 7, color: "#6B82A8", lineHeight: 1.4 }}>
+            Factuur conform de Nederlandse factuurvereisten: factuurnummer, factuurdatum, volledige naam en adres van
+            leverancier en afnemer, BTW-identificatienummer(s) waar van toepassing, omschrijving van de prestatie,
+            bedrag excl. BTW, BTW-tarief en BTW-bedrag, en totaalbedrag incl. BTW.
+          </Text>
+        </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>AI-FIRST · WE SHIP FAST · ai-group.nl</Text>

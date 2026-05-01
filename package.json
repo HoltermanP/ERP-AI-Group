@@ -11,7 +11,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "seed": "tsx -r dotenv/config scripts/seed.ts dotenv_config_path=.env.local"
+    "seed": "tsx scripts/seed.ts",
+    "seed:reset": "tsx scripts/seed.ts --reset",
+    "renumber-docs": "tsx scripts/renumber-documents.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.6",

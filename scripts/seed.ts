@@ -4,9 +4,10 @@ loadEnv()
 
 import { neon } from "@neondatabase/serverless"
 import { drizzle } from "drizzle-orm/neon-http"
-import { sql, count } from "drizzle-orm"
+import { count } from "drizzle-orm"
 import * as schema from "../lib/db/schema"
 import { calculateTotals } from "../lib/utils/calculations"
+import { generateQuoteNumber, generateInvoiceNumber } from "../lib/utils/numbering"
 
 const sqlClient = neon(process.env.DATABASE_URL!)
 const db = drizzle(sqlClient, { schema })
@@ -188,26 +189,6 @@ async function ensureCompanyProfile() {
   console.log("✅ Company profile aangemaakt")
 }
 
-async function nextQuoteNumber(): Promise<string> {
-  const year = new Date().getFullYear()
-  const result = await db
-    .select({ count: sql<number>`COUNT(*)` })
-    .from(schema.quotes)
-    .where(sql`EXTRACT(YEAR FROM created_at) = ${year}`)
-  const num = String(Number(result[0].count) + 1).padStart(3, "0")
-  return `OFF-${year}-${num}`
-}
-
-async function nextInvoiceNumber(): Promise<string> {
-  const year = new Date().getFullYear()
-  const result = await db
-    .select({ count: sql<number>`COUNT(*)` })
-    .from(schema.invoices)
-    .where(sql`EXTRACT(YEAR FROM created_at) = ${year}`)
-  const num = String(Number(result[0].count) + 1).padStart(3, "0")
-  return `FAC-${year}-${num}`
-}
-
 type LineInput = {
   description: string
   quantity: string
@@ -358,7 +339,7 @@ async function seed() {
     if (!cust) continue
 
     const totals = totalsForLines(spec.lines)
-    const quoteNumber = await nextQuoteNumber()
+    const quoteNumber = await generateQuoteNumber()
     const validUntil = new Date()
     validUntil.setDate(validUntil.getDate() + spec.validDaysFromNow)
     const validUntilStr = validUntil.toISOString().split("T")[0]
@@ -481,7 +462,7 @@ async function seed() {
   for (const inv of invoiceSpecs) {
     const cust = insertedCustomers[inv.customerIndex]
     const totals = totalsForLines(inv.lines)
-    const invoiceNumber = await nextInvoiceNumber()
+    const invoiceNumber = await generateInvoiceNumber()
     const invDate = daysAgo(inv.invoiceDaysAgo)
     const due = daysFromNow(inv.dueDaysFromNow)
     const invDateStr = invDate.toISOString().split("T")[0]

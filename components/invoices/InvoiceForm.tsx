@@ -13,9 +13,11 @@ import type { Invoice, InvoiceLine, Customer } from "@/lib/db/schema"
 interface InvoiceFormProps {
   invoice?: Invoice & { lines?: InvoiceLine[] }
   preselectedCustomerId?: number
+  /** Standaard betalingstekst voor nieuwe facturen (vanuit bedrijfsprofiel). */
+  defaultPaymentTerms?: string
 }
 
-export function InvoiceForm({ invoice, preselectedCustomerId }: InvoiceFormProps) {
+export function InvoiceForm({ invoice, preselectedCustomerId, defaultPaymentTerms }: InvoiceFormProps) {
   const router = useRouter()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(false)
@@ -173,7 +175,7 @@ export function InvoiceForm({ invoice, preselectedCustomerId }: InvoiceFormProps
           <Textarea
             label="Betalingsvoorwaarden"
             name="terms"
-            defaultValue={invoice?.terms || "Betaling binnen 30 dagen na factuurdatum."}
+            defaultValue={invoice?.terms ?? defaultPaymentTerms ?? ""}
           />
         </CardBody>
       </Card>
