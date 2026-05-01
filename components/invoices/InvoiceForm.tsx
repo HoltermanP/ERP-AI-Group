@@ -9,6 +9,7 @@ import { QuoteLineEditor, type LineItem } from "@/components/quotes/QuoteLineEdi
 import { createInvoice, updateInvoice } from "@/lib/actions/invoices"
 import { getCustomers } from "@/lib/actions/customers"
 import type { Invoice, InvoiceLine, Customer } from "@/lib/db/schema"
+import { computeDefaultDueDate, INVOICE_PAYMENT_TERM_DAYS } from "@/lib/constants/invoicing"
 
 interface InvoiceFormProps {
   invoice?: Invoice & { lines?: InvoiceLine[] }
@@ -23,6 +24,7 @@ export function InvoiceForm({ invoice, preselectedCustomerId, defaultPaymentTerm
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [lines, setLines] = useState<LineItem[]>([])
+  const [todayYmd] = useState(() => new Date().toISOString().split("T")[0])
 
   useEffect(() => {
     getCustomers().then(setCustomers)
@@ -83,8 +85,8 @@ export function InvoiceForm({ invoice, preselectedCustomerId, defaultPaymentTerm
     setLoading(false)
   }
 
-  const today = new Date().toISOString().split("T")[0]
-  const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+  const defaultInvoiceDateYmd = invoice?.invoiceDate ?? todayYmd
+  const defaultDueDateYmd = invoice?.dueDate ?? computeDefaultDueDate(defaultInvoiceDateYmd)
 
   const customerOptions = customers.map((c) => ({ value: String(c.id), label: c.companyName }))
   const statusOptions = [
@@ -137,13 +139,13 @@ export function InvoiceForm({ invoice, preselectedCustomerId, defaultPaymentTerm
               label="Factuurdatum"
               name="invoiceDate"
               type="date"
-              defaultValue={invoice?.invoiceDate || today}
+              defaultValue={defaultInvoiceDateYmd}
             />
             <Input
-              label="Vervaldatum"
+              label={`Vervaldatum (standaard ${INVOICE_PAYMENT_TERM_DAYS} dagen na factuurdatum)`}
               name="dueDate"
               type="date"
-              defaultValue={invoice?.dueDate || in30Days}
+              defaultValue={defaultDueDateYmd}
             />
           </div>
         </CardBody>

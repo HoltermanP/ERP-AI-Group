@@ -17,6 +17,7 @@ import { calculateTotals } from "@/lib/utils/calculations"
 import { getCompanyProfile } from "@/lib/actions/company"
 import { buildDefaultInvoiceTerms } from "@/lib/invoice-terms"
 import { scaleQuoteLinesForInstallment, type QuoteLineInput } from "@/lib/utils/quote-installments"
+import { computeDefaultDueDate } from "@/lib/constants/invoicing"
 
 export async function getInvoices() {
   try {
@@ -67,10 +68,10 @@ export async function createInvoice(
     }))
     const totals = calculateTotals(lineItems)
 
-    // Calculate due date (30 days from invoice date)
-    const invoiceDate = data.invoiceDate ? new Date(data.invoiceDate) : new Date()
-    const dueDate = new Date(invoiceDate)
-    dueDate.setDate(dueDate.getDate() + 30)
+    const dueDateYmd =
+      data.dueDate && String(data.dueDate).trim() !== ""
+        ? String(data.dueDate)
+        : computeDefaultDueDate(data.invoiceDate ? String(data.invoiceDate) : undefined)
 
     const invoiceResult = await db
       .insert(invoices)
@@ -78,7 +79,7 @@ export async function createInvoice(
         ...data,
         terms,
         invoiceNumber,
-        dueDate: data.dueDate || dueDate.toISOString().split("T")[0],
+        dueDate: dueDateYmd,
         subtotal: String(totals.subtotal),
         btwAmount: String(totals.btwAmount),
         total: String(totals.total),

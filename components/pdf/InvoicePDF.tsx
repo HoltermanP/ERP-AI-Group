@@ -6,6 +6,7 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer"
 import type { Invoice, InvoiceLine, Customer, CompanyProfile, Quote } from "@/lib/db/schema"
+import { INVOICE_PAYMENT_TERM_DAYS } from "@/lib/constants/invoicing"
 
 const styles = StyleSheet.create({
   page: {
@@ -68,6 +69,27 @@ function fmtDate(val: Date | string | null | undefined): string {
 interface InvoicePDFProps {
   invoice: Invoice & { lines?: InvoiceLine[]; customer?: Customer | null; quote?: Quote | null }
   company: CompanyProfile | null
+}
+
+function paymentInstructionBlock(
+  invoice: Invoice & { customer?: Customer | null },
+  company: CompanyProfile | null
+): string {
+  const total = fmt(invoice.total)
+  const factuurNr = invoice.invoiceNumber
+  const deadline =
+    invoice.dueDate != null && String(invoice.dueDate).trim() !== ""
+      ? `uiterlijk op ${fmtDate(invoice.dueDate)}`
+      : "uiterlijk binnen de op deze factuur genoemde termijn"
+  const iban = company?.iban?.trim()
+  const naam = company?.name?.trim() || "de leverancier"
+
+  const termijn = `De betalingstermijn is ${INVOICE_PAYMENT_TERM_DAYS} dagen na factuurdatum.`
+
+  if (iban) {
+    return `Wij verzoeken u het totaalbedrag van ${total} over te maken op bankrekeningnummer ${iban} t.n.v. ${naam}, onder vermelding van factuurnummer ${factuurNr}, ${deadline}. ${termijn}`
+  }
+  return `Wij verzoeken u het totaalbedrag van ${total} te voldoen, onder vermelding van factuurnummer ${factuurNr}, ${deadline}. ${termijn} (Vul het IBAN in bij Instellingen om het rekeningnummer op de factuur te tonen.)`
 }
 
 function btwByRate(lines: InvoiceLine[] | undefined): { pct: string; base: number; amount: number }[] {
@@ -200,26 +222,13 @@ export function InvoicePDF({ invoice, company }: InvoicePDFProps) {
 
         <View style={[styles.notes, { marginTop: 16 }]}>
           <Text style={styles.notesLabel}>Betalingsinstructie</Text>
-          <Text style={styles.notesText}>
-            {invoice.terms ||
-              (company?.iban
-                ? `Graag het totaalbedrag vóór de vervaldatum overmaken op ${company.iban} onder vermelding van het factuurnummer.`
-                : "Betaal voor de vervaldatum onder vermelding van het factuurnummer.")}
-          </Text>
+          <Text style={styles.notesText}>{paymentInstructionBlock(invoice, company)}</Text>
           {invoice.notes && (
             <>
               <Text style={[styles.notesLabel, { marginTop: 10 }]}>Toelichting / referentie</Text>
               <Text style={styles.notesText}>{invoice.notes}</Text>
             </>
           )}
-        </View>
-
-        <View style={{ marginTop: 12, padding: 10, borderWidth: 0.5, borderColor: "#E0E6F0", borderRadius: 4 }}>
-          <Text style={{ fontSize: 7, color: "#6B82A8", lineHeight: 1.4 }}>
-            Factuur conform de Nederlandse factuurvereisten: factuurnummer, factuurdatum, volledige naam en adres van
-            leverancier en afnemer, BTW-identificatienummer(s) waar van toepassing, omschrijving van de prestatie,
-            bedrag excl. BTW, BTW-tarief en BTW-bedrag, en totaalbedrag incl. BTW.
-          </Text>
         </View>
 
         <View style={styles.footer}>
