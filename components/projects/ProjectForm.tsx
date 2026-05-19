@@ -1,26 +1,21 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createProject, updateProject } from "@/lib/actions/projects"
-import { getCustomers } from "@/lib/actions/customers"
 import { Button } from "@/components/ui/Button"
 import type { Project, Customer } from "@/lib/db/schema"
 
 interface ProjectFormProps {
   project?: Project
+  customers: Customer[]
   preselectedCustomerId?: number
 }
 
-export function ProjectForm({ project, preselectedCustomerId }: ProjectFormProps) {
+export function ProjectForm({ project, customers, preselectedCustomerId }: ProjectFormProps) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
-  const [customers, setCustomers] = useState<Customer[]>([])
-
-  useEffect(() => {
-    getCustomers().then(setCustomers)
-  }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -28,6 +23,17 @@ export function ProjectForm({ project, preselectedCustomerId }: ProjectFormProps
     setError("")
 
     const fd = new FormData(e.currentTarget)
+    const budgetHours = (fd.get("budgetHours") as string) || "0"
+    const budgetCosts = (fd.get("budgetCosts") as string) || "0"
+    const budgetRevenue = (fd.get("budgetRevenue") as string) || "0"
+    
+    // Ensure values are valid numbers
+    if (isNaN(parseFloat(budgetHours)) || isNaN(parseFloat(budgetCosts)) || isNaN(parseFloat(budgetRevenue))) {
+      setError("Budget waarden moeten geldige getallen zijn")
+      setSaving(false)
+      return
+    }
+    
     const data = {
       customerId: fd.get("customerId") ? parseInt(fd.get("customerId") as string) : null,
       name: fd.get("name") as string,
@@ -35,9 +41,9 @@ export function ProjectForm({ project, preselectedCustomerId }: ProjectFormProps
       status: fd.get("status") as string,
       startDate: (fd.get("startDate") as string) || null,
       endDate: (fd.get("endDate") as string) || null,
-      budgetHours: (fd.get("budgetHours") as string) || "0",
-      budgetCosts: (fd.get("budgetCosts") as string) || "0",
-      budgetRevenue: (fd.get("budgetRevenue") as string) || "0",
+      budgetHours,
+      budgetCosts,
+      budgetRevenue,
       notes: (fd.get("notes") as string) || null,
     }
 
@@ -78,7 +84,7 @@ export function ProjectForm({ project, preselectedCustomerId }: ProjectFormProps
           <label style={labelStyle}>Klant</label>
           <select
             name="customerId"
-            defaultValue={project?.customerId || preselectedCustomerId || ""}
+            defaultValue={project?.customerId ?? preselectedCustomerId ?? ""}
             style={inputStyle}
           >
             <option value="">— Selecteer klant —</option>
@@ -128,9 +134,9 @@ export function ProjectForm({ project, preselectedCustomerId }: ProjectFormProps
             <input
               name="budgetHours"
               type="number"
-              step="0.5"
+              step="any"
               min="0"
-              defaultValue={project?.budgetHours || "0"}
+              defaultValue={project?.budgetHours ? parseFloat(String(project.budgetHours)) : 0}
               style={inputStyle}
               placeholder="0"
             />
@@ -140,9 +146,9 @@ export function ProjectForm({ project, preselectedCustomerId }: ProjectFormProps
             <input
               name="budgetCosts"
               type="number"
-              step="0.01"
+              step="any"
               min="0"
-              defaultValue={project?.budgetCosts || "0"}
+              defaultValue={project?.budgetCosts ? parseFloat(String(project.budgetCosts)) : 0}
               style={inputStyle}
               placeholder="0.00"
             />
@@ -152,9 +158,9 @@ export function ProjectForm({ project, preselectedCustomerId }: ProjectFormProps
             <input
               name="budgetRevenue"
               type="number"
-              step="0.01"
+              step="any"
               min="0"
-              defaultValue={project?.budgetRevenue || "0"}
+              defaultValue={project?.budgetRevenue ? parseFloat(String(project.budgetRevenue)) : 0}
               style={inputStyle}
               placeholder="0.00"
             />

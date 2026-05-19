@@ -71,8 +71,7 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
 
   const totalHours = hours.reduce((s, h) => s + parseFloat(h.hours), 0)
   const totalCosts = costs.reduce((s, c) => s + parseFloat(c.amount), 0)
-  const totalRevenue = revenue.filter((r) => r.type === "actual").reduce((s, r) => s + parseFloat(r.amount), 0)
-  const forecastRevenue = revenue.filter((r) => r.type === "forecast").reduce((s, r) => s + parseFloat(r.amount), 0)
+  const totalRevenue = revenue.reduce((s, r) => s + parseFloat(r.amount), 0)
   const budgetHours = parseFloat(project.budgetHours || "0")
   const budgetCosts = parseFloat(project.budgetCosts || "0")
   const budgetRevenue = parseFloat(project.budgetRevenue || "0")
@@ -154,7 +153,7 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
       description: fd.get("description") as string,
       amount: fd.get("amount") as string,
       date: fd.get("date") as string,
-      type: fd.get("type") as string,
+      type: "actual",
     })
     if (result.success && result.data) {
       setRevenue((prev) => [result.data!, ...prev])
@@ -223,16 +222,13 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
           {[
             { label: "Uren", actual: formatNumber(totalHours) + " u", budget: formatNumber(budgetHours) + " u", pct: budgetHours > 0 ? (totalHours / budgetHours) * 100 : 0 },
             { label: "Kosten", actual: formatCurrency(totalCosts), budget: formatCurrency(budgetCosts), pct: budgetCosts > 0 ? (totalCosts / budgetCosts) * 100 : 0 },
-            { label: "Omzet", actual: formatCurrency(totalRevenue), budget: formatCurrency(budgetRevenue), pct: budgetRevenue > 0 ? (totalRevenue / budgetRevenue) * 100 : 0, forecast: formatCurrency(forecastRevenue) },
+            { label: "Omzet", actual: formatCurrency(totalRevenue), budget: formatCurrency(budgetRevenue), pct: budgetRevenue > 0 ? (totalRevenue / budgetRevenue) * 100 : 0 },
           ].map((item) => (
             <Card key={item.label}>
               <CardBody>
                 <p className="text-xs font-medium mb-2" style={{ color: "#6B82A8" }}>{item.label.toUpperCase()}</p>
                 <p className="text-2xl font-bold" style={{ color: "#F4F6FA" }}>{item.actual}</p>
                 <p className="text-xs mt-1" style={{ color: "#6B82A8" }}>Begroot: {item.budget}</p>
-                {"forecast" in item && item.forecast && (
-                  <p className="text-xs mt-0.5" style={{ color: "#F5A623" }}>Prognose: {item.forecast}</p>
-                )}
                 <div className="mt-3 h-1.5 rounded-full overflow-hidden" style={{ background: "#1E2130" }}>
                   <div
                     className="h-full rounded-full transition-all"
@@ -405,17 +401,10 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
           <Card>
             <CardHeader><p className="text-sm font-semibold" style={{ color: "#F4F6FA" }}>Omzet boeken</p></CardHeader>
             <CardBody>
-              <form onSubmit={handleAddRevenue} className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
+              <form onSubmit={handleAddRevenue} className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
                 <div className="space-y-1">
                   <label className="text-xs" style={{ color: "#6B82A8" }}>Datum</label>
                   <input name="date" type="date" required defaultValue={today} style={inputStyle} className="w-full" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs" style={{ color: "#6B82A8" }}>Type</label>
-                  <select name="type" style={inputStyle} className="w-full">
-                    <option value="actual">Geboekt</option>
-                    <option value="forecast">Prognose</option>
-                  </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs" style={{ color: "#6B82A8" }}>Bedrag (€)</label>
@@ -442,9 +431,6 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
                     <div className="flex items-center gap-4 min-w-0">
                       <span className="text-xs font-mono shrink-0" style={{ color: "#6B82A8" }}>{formatDate(r.date)}</span>
                       <span className="text-sm font-semibold shrink-0" style={{ color: "#F4F6FA" }}>{formatCurrency(r.amount)}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full shrink-0" style={{ background: r.type === "actual" ? "#0A2A1A" : "#1E1A10", color: r.type === "actual" ? "#2DD68A" : "#F5A623" }}>
-                        {r.type === "actual" ? "Geboekt" : "Prognose"}
-                      </span>
                       <span className="text-xs truncate" style={{ color: "#6B82A8" }}>{r.description}</span>
                     </div>
                     <button onClick={() => handleDeleteRevenue(r.id)} style={{ color: "#6B82A8" }} className="hover:text-red-400 shrink-0">
@@ -457,15 +443,9 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
             {revenue.length > 0 && (
               <div className="px-6 py-3 space-y-1" style={{ borderTop: "1px solid #1E2130" }}>
                 <div className="flex justify-between">
-                  <span className="text-sm" style={{ color: "#6B82A8" }}>Geboekte omzet</span>
+                  <span className="text-sm" style={{ color: "#6B82A8" }}>Totaal omzet</span>
                   <span className="text-sm font-semibold" style={{ color: "#2DD68A" }}>{formatCurrency(totalRevenue)}</span>
                 </div>
-                {forecastRevenue > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-sm" style={{ color: "#6B82A8" }}>Prognose omzet</span>
-                    <span className="text-sm font-semibold" style={{ color: "#F5A623" }}>{formatCurrency(forecastRevenue)}</span>
-                  </div>
-                )}
                 <div className="flex justify-between">
                   <span className="text-sm" style={{ color: "#6B82A8" }}>Begrote omzet</span>
                   <span className="text-sm" style={{ color: "#6B82A8" }}>{formatCurrency(budgetRevenue)}</span>
