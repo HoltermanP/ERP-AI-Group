@@ -1,3 +1,4 @@
+import { getCustomers } from "@/lib/actions/customers"
 import { Card, CardHeader, CardBody } from "@/components/ui/Card"
 import { ProjectForm } from "@/components/projects/ProjectForm"
 
@@ -6,7 +7,10 @@ interface PageProps {
 }
 
 export default async function NewProjectPage({ searchParams }: PageProps) {
-  const { customerId } = await searchParams
+  const [{ customerId }, customers] = await Promise.all([
+    searchParams,
+    getCustomers(),
+  ])
   const preselectedCustomerId = customerId ? parseInt(customerId) : undefined
 
   return (
@@ -20,7 +24,7 @@ export default async function NewProjectPage({ searchParams }: PageProps) {
           <h2 className="font-semibold text-sm" style={{ color: "#F4F6FA" }}>Projectgegevens</h2>
         </CardHeader>
         <CardBody>
-          <ProjectForm preselectedCustomerId={preselectedCustomerId} />
+          <ProjectForm customers={customers} preselectedCustomerId={preselectedCustomerId} />
         </CardBody>
       </Card>
     </div>

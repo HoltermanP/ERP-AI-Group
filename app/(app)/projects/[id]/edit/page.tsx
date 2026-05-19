@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { getProject } from "@/lib/actions/projects"
+import { getCustomers } from "@/lib/actions/customers"
 import { Card, CardHeader, CardBody } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { ProjectForm } from "@/components/projects/ProjectForm"
@@ -12,7 +13,10 @@ interface PageProps {
 
 export default async function EditProjectPage({ params }: PageProps) {
   const { id } = await params
-  const project = await getProject(parseInt(id))
+  const [project, customers] = await Promise.all([
+    getProject(parseInt(id)),
+    getCustomers(),
+  ])
 
   if (!project) notFound()
 
@@ -32,7 +36,7 @@ export default async function EditProjectPage({ params }: PageProps) {
           <h2 className="font-semibold text-sm" style={{ color: "#F4F6FA" }}>Projectgegevens</h2>
         </CardHeader>
         <CardBody>
-          <ProjectForm project={project} />
+          <ProjectForm project={project} customers={customers} />
         </CardBody>
       </Card>
     </div>
