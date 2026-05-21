@@ -2,12 +2,12 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { addProjectHour, deleteProjectHour, addProjectCost, deleteProjectCost, addProjectRevenue, deleteProjectRevenue, addProjectEmployee, removeProjectEmployee } from "@/lib/actions/projects"
+import { addProjectHour, updateProjectHour, deleteProjectHour, addProjectCost, updateProjectCost, deleteProjectCost, addProjectRevenue, deleteProjectRevenue, addProjectEmployee, removeProjectEmployee } from "@/lib/actions/projects"
 import { Card, CardHeader, CardBody } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils/formatters"
-import { Trash2, Plus, UserPlus } from "lucide-react"
+import { Trash2, Plus, UserPlus, Pencil, Check, X } from "lucide-react"
 import type { Employee } from "@/lib/db/schema"
 
 type ProjectFull = {
@@ -68,6 +68,8 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
   const [revenue, setRevenue] = useState(project.revenue)
   const [projectEmployees, setProjectEmployees] = useState(project.projectEmployees)
   const [saving, setSaving] = useState(false)
+  const [editingHourId, setEditingHourId] = useState<number | null>(null)
+  const [editingCostId, setEditingCostId] = useState<number | null>(null)
 
   const totalHours = hours.reduce((s, h) => s + parseFloat(h.hours), 0)
   const totalCosts = costs.reduce((s, c) => s + parseFloat(c.amount), 0)
@@ -119,6 +121,24 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
     setHours((prev) => prev.filter((h) => h.id !== id))
   }
 
+  async function handleUpdateHour(id: number, e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setSaving(true)
+    const fd = new FormData(e.currentTarget)
+    const result = await updateProjectHour(id, project.id, {
+      employeeId: fd.get("employeeId") ? parseInt(fd.get("employeeId") as string) : null,
+      date: fd.get("date") as string,
+      hours: fd.get("hours") as string,
+      description: (fd.get("description") as string) || null,
+    })
+    if (result.success && result.data) {
+      const emp = allEmployees.find((e) => e.id === result.data!.employeeId) || null
+      setHours((prev) => prev.map((h) => h.id === id ? { ...result.data!, employee: emp } : h))
+      setEditingHourId(null)
+    }
+    setSaving(false)
+  }
+
   async function handleAddCost(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = e.currentTarget
@@ -141,6 +161,23 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
   async function handleDeleteCost(id: number) {
     await deleteProjectCost(id, project.id)
     setCosts((prev) => prev.filter((c) => c.id !== id))
+  }
+
+  async function handleUpdateCost(id: number, e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setSaving(true)
+    const fd = new FormData(e.currentTarget)
+    const result = await updateProjectCost(id, project.id, {
+      date: fd.get("date") as string,
+      amount: fd.get("amount") as string,
+      category: (fd.get("category") as string) || null,
+      description: fd.get("description") as string,
+    })
+    if (result.success && result.data) {
+      setCosts((prev) => prev.map((c) => c.id === id ? result.data! : c))
+      setEditingCostId(null)
+    }
+    setSaving(false)
   }
 
   async function handleAddRevenue(e: React.FormEvent<HTMLFormElement>) {
@@ -304,16 +341,49 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
                 <p className="px-6 py-8 text-sm text-center" style={{ color: "#6B82A8" }}>Nog geen uren geregistreerd</p>
               ) : (
                 hours.map((h) => (
-                  <div key={h.id} className="px-6 py-3 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <span className="text-xs font-mono shrink-0" style={{ color: "#6B82A8" }}>{formatDate(h.date)}</span>
-                      <span className="text-sm font-semibold shrink-0" style={{ color: "#F4F6FA" }}>{formatNumber(h.hours)} u</span>
-                      {h.employee && <span className="text-xs shrink-0" style={{ color: "#4B8EFF" }}>{h.employee.name}</span>}
-                      {h.description && <span className="text-xs truncate" style={{ color: "#6B82A8" }}>{h.description}</span>}
-                    </div>
-                    <button onClick={() => handleDeleteHour(h.id)} style={{ color: "#6B82A8" }} className="hover:text-red-400 shrink-0">
-                      <Trash2 size={14} />
-                    </button>
+                  <div key={h.id} className="px-6 py-3" style={{ borderColor: "#1E2130" }}>
+                    {editingHourId === h.id ? (
+                      <form onSubmit={(e) => handleUpdateHour(h.id, e)} className="grid grid-cols-2 md:grid-cols-5 gap-2 items-end">
+                        <div className="space-y-1">
+                          <label className="text-xs" style={{ color: "#6B82A8" }}>Datum</label>
+                          <input name="date" type="date" required defaultValue={h.date} style={inputStyle} className="w-full" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs" style={{ color: "#6B82A8" }}>Medewerker</label>
+                          <select name="employeeId" defaultValue={h.employee?.id ?? ""} style={inputStyle} className="w-full">
+                            <option value="">— Selecteer —</option>
+                            {projectEmployees.map((pe) => pe.employee && (
+                              <option key={pe.id} value={pe.employee.id}>{pe.employee.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs" style={{ color: "#6B82A8" }}>Uren</label>
+                          <input name="hours" type="number" step="0.25" min="0.25" required defaultValue={h.hours} style={inputStyle} className="w-full" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs" style={{ color: "#6B82A8" }}>Omschrijving</label>
+                          <input name="description" defaultValue={h.description ?? ""} placeholder="Wat is er gedaan?" style={inputStyle} className="w-full" />
+                        </div>
+                        <div className="flex gap-2">
+                          <button type="submit" disabled={saving} className="hover:text-green-400" style={{ color: "#2DD68A" }}><Check size={14} /></button>
+                          <button type="button" onClick={() => setEditingHourId(null)} style={{ color: "#6B82A8" }} className="hover:text-white"><X size={14} /></button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 min-w-0">
+                          <span className="text-xs font-mono shrink-0" style={{ color: "#6B82A8" }}>{formatDate(h.date)}</span>
+                          <span className="text-sm font-semibold shrink-0" style={{ color: "#F4F6FA" }}>{formatNumber(h.hours)} u</span>
+                          {h.employee && <span className="text-xs shrink-0" style={{ color: "#4B8EFF" }}>{h.employee.name}</span>}
+                          {h.description && <span className="text-xs truncate" style={{ color: "#6B82A8" }}>{h.description}</span>}
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <button onClick={() => setEditingHourId(h.id)} style={{ color: "#6B82A8" }} className="hover:text-blue-400"><Pencil size={14} /></button>
+                          <button onClick={() => handleDeleteHour(h.id)} style={{ color: "#6B82A8" }} className="hover:text-red-400"><Trash2 size={14} /></button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -371,16 +441,51 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
                 <p className="px-6 py-8 text-sm text-center" style={{ color: "#6B82A8" }}>Nog geen kosten geregistreerd</p>
               ) : (
                 costs.map((c) => (
-                  <div key={c.id} className="px-6 py-3 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <span className="text-xs font-mono shrink-0" style={{ color: "#6B82A8" }}>{formatDate(c.date)}</span>
-                      <span className="text-sm font-semibold shrink-0" style={{ color: "#F4F6FA" }}>{formatCurrency(c.amount)}</span>
-                      {c.category && <span className="text-xs px-2 py-0.5 rounded-full shrink-0" style={{ background: "#1E2130", color: "#6B82A8" }}>{c.category}</span>}
-                      <span className="text-xs truncate" style={{ color: "#6B82A8" }}>{c.description}</span>
-                    </div>
-                    <button onClick={() => handleDeleteCost(c.id)} style={{ color: "#6B82A8" }} className="hover:text-red-400 shrink-0">
-                      <Trash2 size={14} />
-                    </button>
+                  <div key={c.id} className="px-6 py-3" style={{ borderColor: "#1E2130" }}>
+                    {editingCostId === c.id ? (
+                      <form onSubmit={(e) => handleUpdateCost(c.id, e)} className="grid grid-cols-2 md:grid-cols-5 gap-2 items-end">
+                        <div className="space-y-1">
+                          <label className="text-xs" style={{ color: "#6B82A8" }}>Datum</label>
+                          <input name="date" type="date" required defaultValue={c.date} style={inputStyle} className="w-full" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs" style={{ color: "#6B82A8" }}>Categorie</label>
+                          <select name="category" defaultValue={c.category ?? ""} style={inputStyle} className="w-full">
+                            <option value="">— Categorie —</option>
+                            <option value="materiaal">Materiaal</option>
+                            <option value="reis">Reis &amp; verblijf</option>
+                            <option value="extern">Extern personeel</option>
+                            <option value="software">Software/licenties</option>
+                            <option value="overig">Overig</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs" style={{ color: "#6B82A8" }}>Bedrag (€)</label>
+                          <input name="amount" type="number" step="0.01" min="0" required defaultValue={c.amount} style={inputStyle} className="w-full" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs" style={{ color: "#6B82A8" }}>Omschrijving</label>
+                          <input name="description" required defaultValue={c.description} style={inputStyle} className="w-full" />
+                        </div>
+                        <div className="flex gap-2">
+                          <button type="submit" disabled={saving} className="hover:text-green-400" style={{ color: "#2DD68A" }}><Check size={14} /></button>
+                          <button type="button" onClick={() => setEditingCostId(null)} style={{ color: "#6B82A8" }} className="hover:text-white"><X size={14} /></button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 min-w-0">
+                          <span className="text-xs font-mono shrink-0" style={{ color: "#6B82A8" }}>{formatDate(c.date)}</span>
+                          <span className="text-sm font-semibold shrink-0" style={{ color: "#F4F6FA" }}>{formatCurrency(c.amount)}</span>
+                          {c.category && <span className="text-xs px-2 py-0.5 rounded-full shrink-0" style={{ background: "#1E2130", color: "#6B82A8" }}>{c.category}</span>}
+                          <span className="text-xs truncate" style={{ color: "#6B82A8" }}>{c.description}</span>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <button onClick={() => setEditingCostId(c.id)} style={{ color: "#6B82A8" }} className="hover:text-blue-400"><Pencil size={14} /></button>
+                          <button onClick={() => handleDeleteCost(c.id)} style={{ color: "#6B82A8" }} className="hover:text-red-400"><Trash2 size={14} /></button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))
               )}

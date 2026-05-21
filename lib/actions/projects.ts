@@ -145,6 +145,17 @@ export async function addProjectHour(data: NewProjectHour) {
   }
 }
 
+export async function updateProjectHour(id: number, projectId: number, data: Partial<NewProjectHour>) {
+  try {
+    const result = await db.update(projectHours).set(data).where(eq(projectHours.id, id)).returning()
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true, data: result[0] }
+  } catch (error) {
+    console.error("Error updating project hour:", error)
+    return { success: false, error: "Kon urenregel niet bijwerken" }
+  }
+}
+
 export async function deleteProjectHour(id: number, projectId: number) {
   try {
     await db.delete(projectHours).where(eq(projectHours.id, id))
@@ -166,6 +177,17 @@ export async function addProjectCost(data: NewProjectCost) {
   } catch (error) {
     console.error("Error adding project cost:", error)
     return { success: false, error: "Kon kosten niet registreren" }
+  }
+}
+
+export async function updateProjectCost(id: number, projectId: number, data: Partial<NewProjectCost>) {
+  try {
+    const result = await db.update(projectCosts).set(data).where(eq(projectCosts.id, id)).returning()
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true, data: result[0] }
+  } catch (error) {
+    console.error("Error updating project cost:", error)
+    return { success: false, error: "Kon kostenregel niet bijwerken" }
   }
 }
 
