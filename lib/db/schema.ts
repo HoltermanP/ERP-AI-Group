@@ -314,3 +314,66 @@ export type ProjectCost = typeof projectCosts.$inferSelect
 export type NewProjectCost = typeof projectCosts.$inferInsert
 export type ProjectRevenue = typeof projectRevenue.$inferSelect
 export type NewProjectRevenue = typeof projectRevenue.$inferInsert
+
+// ─── Exploitatie (terugkerende posten) ────────────────────────────────────────
+
+export const recurringItems = pgTable("recurring_items", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull(), // 'cost' | 'revenue'
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  frequency: text("frequency").notNull(), // 'monthly' | 'quarterly' | 'yearly'
+  category: text("category"),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date"),
+  active: boolean("active").default(true),
+  nextBookingDate: date("next_booking_date").notNull(),
+  lastBookedAt: timestamp("last_booked_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+export const recurringItemProjects = pgTable("recurring_item_projects", {
+  id: serial("id").primaryKey(),
+  recurringItemId: integer("recurring_item_id").references(() => recurringItems.id, { onDelete: "cascade" }),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: "cascade" }),
+})
+
+export const recurringBookings = pgTable("recurring_bookings", {
+  id: serial("id").primaryKey(),
+  recurringItemId: integer("recurring_item_id").references(() => recurringItems.id, { onDelete: "cascade" }),
+  periodDate: date("period_date").notNull(),
+  bookedAt: timestamp("booked_at").defaultNow(),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  perProjectAmount: decimal("per_project_amount", { precision: 10, scale: 2 }).notNull(),
+  projectCount: integer("project_count").notNull(),
+})
+
+export const recurringItemsRelations = relations(recurringItems, ({ many }) => ({
+  projects: many(recurringItemProjects),
+  bookings: many(recurringBookings),
+}))
+
+export const recurringItemProjectsRelations = relations(recurringItemProjects, ({ one }) => ({
+  recurringItem: one(recurringItems, {
+    fields: [recurringItemProjects.recurringItemId],
+    references: [recurringItems.id],
+  }),
+  project: one(projects, {
+    fields: [recurringItemProjects.projectId],
+    references: [projects.id],
+  }),
+}))
+
+export const recurringBookingsRelations = relations(recurringBookings, ({ one }) => ({
+  recurringItem: one(recurringItems, {
+    fields: [recurringBookings.recurringItemId],
+    references: [recurringItems.id],
+  }),
+}))
+
+export type RecurringItem = typeof recurringItems.$inferSelect
+export type NewRecurringItem = typeof recurringItems.$inferInsert
+export type RecurringItemProject = typeof recurringItemProjects.$inferSelect
+export type RecurringBooking = typeof recurringBookings.$inferSelect

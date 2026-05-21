@@ -12,12 +12,14 @@ import {
   X,
   FolderKanban,
   UserCog,
+  RefreshCcw,
 } from "lucide-react"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/customers", label: "Klanten", icon: Users },
   { href: "/projects", label: "Projecten", icon: FolderKanban },
+  { href: "/exploitatie", label: "Exploitatie", icon: RefreshCcw },
   { href: "/contacts", label: "Contacten", icon: MessageSquare },
   { href: "/quotes", label: "Offertes", icon: FileText },
   { href: "/invoices", label: "Facturen", icon: Receipt },

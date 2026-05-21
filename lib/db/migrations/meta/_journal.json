@@ -15,6 +15,13 @@
       "when": 1776411842168,
       "tag": "0001_bright_phalanx",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1748476800000,
+      "tag": "0002_exploitatie",
+      "breakpoints": true
     }
   ]
 }
