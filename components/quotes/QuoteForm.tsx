@@ -168,7 +168,7 @@ export function QuoteForm({ quote, preselectedCustomerId }: QuoteFormProps) {
             label="Betalingsvoorwaarden"
             name="terms"
             defaultValue={quote?.terms || ""}
-            placeholder="Betaling binnen 30 dagen na acceptatie."
+            placeholder="Betaling binnen 14 dagen na acceptatie."
           />
         </CardBody>
       </Card>

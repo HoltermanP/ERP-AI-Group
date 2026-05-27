@@ -1,5 +1,5 @@
 /** Standaard betalingstermijn op facturen (dagen na factuurdatum / vervaldatum). */
-export const INVOICE_PAYMENT_TERM_DAYS = 30
+export const INVOICE_PAYMENT_TERM_DAYS = 14
 
 /**
  * Berekent vervaldatum: factuurdatum + {@link INVOICE_PAYMENT_TERM_DAYS}.

@@ -546,7 +546,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "default": "'Betaling binnen 30 dagen na factuurdatum.'"
+          "default": "'Betaling binnen 14 dagen na factuurdatum.'"
         },
         "pdf_url": {
           "name": "pdf_url",

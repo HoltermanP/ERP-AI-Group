@@ -72,7 +72,7 @@ CREATE TABLE "invoices" (
 	"btw_amount" numeric(10, 2) DEFAULT '0',
 	"total" numeric(10, 2) DEFAULT '0',
 	"notes" text,
-	"terms" text DEFAULT 'Betaling binnen 30 dagen na factuurdatum.',
+	"terms" text DEFAULT 'Betaling binnen 14 dagen na factuurdatum.',
 	"pdf_url" text,
 	"paid_at" timestamp,
 	"created_at" timestamp DEFAULT now(),

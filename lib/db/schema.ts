@@ -93,7 +93,7 @@ export const invoices = pgTable("invoices", {
   btwAmount: decimal("btw_amount", { precision: 10, scale: 2 }).default("0"),
   total: decimal("total", { precision: 10, scale: 2 }).default("0"),
   notes: text("notes"),
-  terms: text("terms").default("Betaling binnen 30 dagen na factuurdatum."),
+  terms: text("terms").default("Betaling binnen 14 dagen na factuurdatum."),
   pdfUrl: text("pdf_url"),
   paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").defaultNow(),

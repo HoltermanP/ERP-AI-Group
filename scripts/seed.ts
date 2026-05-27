@@ -357,7 +357,7 @@ async function seed() {
         btwAmount: String(totals.btwAmount.toFixed(2)),
         total: String(totals.total.toFixed(2)),
         notes: "Testdata — gegenereerd door seed script.",
-        terms: "Betaling binnen 30 dagen na acceptatie, tenzij anders overeengekomen.",
+        terms: "Betaling binnen 14 dagen na acceptatie, tenzij anders overeengekomen.",
       })
       .returning()
 
@@ -452,7 +452,7 @@ async function seed() {
       title: "Factuur video pipeline",
       status: "draft",
       invoiceDaysAgo: 0,
-      dueDaysFromNow: 30,
+      dueDaysFromNow: 14,
       lines: [
         { description: "Automatisering", quantity: "8", unit: "uur", unitPrice: "95", btwPercentage: "21" },
       ],
@@ -486,7 +486,7 @@ async function seed() {
         btwAmount: String(totals.btwAmount.toFixed(2)),
         total: String(totals.total.toFixed(2)),
         notes: "Testdata — seed script.",
-        terms: "Betaling binnen 30 dagen na factuurdatum.",
+        terms: "Betaling binnen 14 dagen na factuurdatum.",
         paidAt: inv.paid ? invDate : null,
       })
       .returning()
