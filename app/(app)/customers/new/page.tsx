@@ -5,8 +5,8 @@ export default function NewCustomerPage() {
   return (
     <div className="max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold" style={{ color: "#F4F6FA" }}>Nieuwe klant</h1>
-        <p className="mt-1 text-sm" style={{ color: "#6B82A8" }}>Voeg een nieuwe klant toe</p>
+        <h1 className="text-2xl font-bold" style={{ color: "#F4F6FA" }}>Nieuwe potentiële klant</h1>
+        <p className="mt-1 text-sm" style={{ color: "#6B82A8" }}>Voeg een nieuwe lead/potentiële klant toe</p>
       </div>
       <Card>
         <CardBody>

@@ -40,7 +40,7 @@ export default function CustomersPage() {
       )
     }
     if (statusFilter !== "all") {
-      result = result.filter((c) => c.status === statusFilter)
+      result = result.filter((c) => (c.leadStatus || "prospect") === statusFilter)
     }
     setFiltered(result)
   }, [search, statusFilter, customers])
@@ -83,7 +83,7 @@ export default function CustomersPage() {
           />
         </div>
         <div className="flex gap-2">
-          {["all", "active", "inactive"].map((s) => (
+          {["all", "prospect", "conversation", "proposal", "customer"].map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
@@ -94,7 +94,15 @@ export default function CustomersPage() {
                 border: "1px solid #1E2130",
               }}
             >
-              {s === "all" ? "Alle" : s === "active" ? "Actief" : "Inactief"}
+              {s === "all"
+                ? "Alle"
+                : s === "prospect"
+                  ? "Prospect"
+                  : s === "conversation"
+                    ? "Conversation"
+                    : s === "proposal"
+                      ? "Proposal"
+                      : "Customer"}
             </button>
           ))}
         </div>
@@ -132,7 +140,8 @@ export default function CustomersPage() {
                 <Th>Contactpersoon</Th>
                 <Th>E-mail</Th>
                 <Th>Telefoon</Th>
-                <Th>Status</Th>
+                <Th>Leadstatus</Th>
+                <Th>Sector</Th>
                 <Th>Aangemaakt</Th>
               </Tr>
             </Thead>
@@ -149,8 +158,9 @@ export default function CustomersPage() {
                   <Td>{customer.email || "-"}</Td>
                   <Td>{customer.phone || "-"}</Td>
                   <Td>
-                    <Badge status={customer.status || "active"} />
+                    <Badge status={customer.leadStatus || "prospect"} />
                   </Td>
+                  <Td>{customer.sector || "-"}</Td>
                   <Td style={{ color: "#6B82A8" }}>{formatDate(customer.createdAt)}</Td>
                 </Tr>
               ))}

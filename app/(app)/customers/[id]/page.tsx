@@ -32,7 +32,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
             <h1 className="text-2xl font-bold" style={{ color: "#F4F6FA" }}>
               {customer.companyName}
             </h1>
-            <Badge status={customer.status || "active"} />
+            <Badge status={customer.leadStatus || "prospect"} />
           </div>
           {customer.contactName && (
             <p className="mt-1 text-sm" style={{ color: "#6B82A8" }}>
@@ -53,9 +53,52 @@ export default async function CustomerDetailPage({ params }: PageProps) {
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <h2 className="font-semibold text-sm" style={{ color: "#F4F6FA" }}>Klantgegevens</h2>
+              <h2 className="font-semibold text-sm" style={{ color: "#F4F6FA" }}>Leadgegevens</h2>
             </CardHeader>
             <CardBody className="space-y-3">
+              {customer.contactRole && (
+                <div className="text-sm" style={{ color: "#6B82A8" }}>
+                  Rol/functie: <span style={{ color: "#F4F6FA" }}>{customer.contactRole}</span>
+                </div>
+              )}
+              {customer.sector && (
+                <div className="text-sm" style={{ color: "#6B82A8" }}>
+                  Sector: <span style={{ color: "#F4F6FA" }}>{customer.sector}</span>
+                </div>
+              )}
+              {customer.aiOpportunity && (
+                <div className="text-sm" style={{ color: "#6B82A8" }}>
+                  AI-opportuniteit: <span style={{ color: "#F4F6FA" }}>{customer.aiOpportunity}</span>
+                </div>
+              )}
+              {customer.leadSource && (
+                <div className="text-sm" style={{ color: "#6B82A8" }}>
+                  Bron: <span style={{ color: "#F4F6FA" }}>{customer.leadSource}</span>
+                </div>
+              )}
+              {customer.companySize && (
+                <div className="text-sm" style={{ color: "#6B82A8" }}>
+                  Bedrijfsgrootte: <span style={{ color: "#F4F6FA" }}>{customer.companySize}</span>
+                </div>
+              )}
+              {customer.budgetIndicator && (
+                <div className="text-sm" style={{ color: "#6B82A8" }}>
+                  Budget indicator: <span style={{ color: "#F4F6FA" }}>{customer.budgetIndicator}</span>
+                </div>
+              )}
+              {customer.timing && (
+                <div className="text-sm" style={{ color: "#6B82A8" }}>
+                  Timing: <span style={{ color: "#F4F6FA" }}>{customer.timing}</span>
+                </div>
+              )}
+              {customer.competitorCheck && (
+                <div className="text-sm" style={{ color: "#6B82A8" }}>
+                  Competitor check: <span style={{ color: "#F4F6FA" }}>{customer.competitorCheck}</span>
+                </div>
+              )}
+              <div className="text-sm" style={{ color: "#6B82A8" }}>
+                Datum toegevoegd: <span style={{ color: "#F4F6FA" }}>{formatDate(customer.createdAt)}</span>
+              </div>
               {customer.email && (
                 <div className="flex items-center gap-2 text-sm">
                   <Mail size={14} style={{ color: "#6B82A8" }} />

@@ -9,6 +9,10 @@ type BadgeVariant =
   | "cancelled"
   | "active"
   | "inactive"
+  | "prospect"
+  | "conversation"
+  | "proposal"
+  | "customer"
   | "concept"
   | "afgerond"
   | "gepauzeerd"
@@ -24,6 +28,10 @@ const styles: Record<BadgeVariant, { bg: string; color: string }> = {
   cancelled: { bg: "#1E1010", color: "#888888" },
   active: { bg: "#0A2A1A", color: "#2DD68A" },
   inactive: { bg: "#1E2130", color: "#6B82A8" },
+  prospect: { bg: "#1E2130", color: "#6B82A8" },
+  conversation: { bg: "#1A2A4A", color: "#4B8EFF" },
+  proposal: { bg: "#1E1A10", color: "#F5A623" },
+  customer: { bg: "#0A2A1A", color: "#2DD68A" },
   concept: { bg: "#1E2130", color: "#6B82A8" },
   afgerond: { bg: "#0A2A1A", color: "#2DD68A" },
   gepauzeerd: { bg: "#1E1A10", color: "#F5A623" },
@@ -40,6 +48,10 @@ const labels: Record<string, string> = {
   cancelled: "Geannuleerd",
   active: "Actief",
   inactive: "Inactief",
+  prospect: "Prospect",
+  conversation: "Conversation",
+  proposal: "Proposal",
+  customer: "Customer",
   concept: "Concept",
   afgerond: "Afgerond",
   gepauzeerd: "Gepauzeerd",

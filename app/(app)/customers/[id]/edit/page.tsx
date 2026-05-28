@@ -18,7 +18,7 @@ export default async function EditCustomerPage({ params }: PageProps) {
         <h1 className="text-2xl font-bold" style={{ color: "#F4F6FA" }}>
           {customer.companyName} bewerken
         </h1>
-        <p className="mt-1 text-sm" style={{ color: "#6B82A8" }}>Klantgegevens aanpassen</p>
+        <p className="mt-1 text-sm" style={{ color: "#6B82A8" }}>Lead-/klantgegevens aanpassen</p>
       </div>
       <Card>
         <CardBody>
