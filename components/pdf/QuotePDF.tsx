@@ -10,7 +10,9 @@ import type { Quote, QuoteLine, Customer, CompanyProfile } from "@/lib/db/schema
 const styles = StyleSheet.create({
   page: {
     backgroundColor: "#FFFFFF",
-    padding: 40,
+    paddingTop: 40,
+    paddingHorizontal: 40,
+    paddingBottom: 70,
     fontFamily: "Helvetica",
     fontSize: 10,
     color: "#0D1428",
@@ -21,6 +23,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 8,
   },
+  headerLeft: { flex: 1, paddingRight: 20 },
+  headerRight: { width: 220 },
   logo: {
     fontSize: 20,
     fontFamily: "Helvetica-Bold",
@@ -102,39 +106,44 @@ const styles = StyleSheet.create({
   },
   totalsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    width: 200,
+    width: 260,
     marginBottom: 4,
   },
   totalsLabel: {
     fontSize: 9,
     color: "#6B82A8",
+    flex: 1,
+    paddingRight: 12,
   },
   totalsValue: {
     fontSize: 9,
     color: "#0D1428",
     fontFamily: "Helvetica",
+    textAlign: "right",
   },
   totalsDivider: {
-    width: 200,
+    width: 260,
     height: 0.5,
     backgroundColor: "#E0E6F0",
     marginVertical: 6,
   },
   totalRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    width: 200,
+    alignItems: "flex-end",
+    width: 260,
   },
   totalLabel: {
     fontSize: 11,
     fontFamily: "Helvetica-Bold",
     color: "#0D1428",
+    flex: 1,
+    paddingRight: 12,
   },
   totalValue: {
     fontSize: 11,
     fontFamily: "Helvetica-Bold",
     color: "#2D6FE8",
+    textAlign: "right",
   },
   notes: {
     marginTop: 24,
@@ -185,13 +194,29 @@ interface QuotePDFProps {
   company: CompanyProfile | null
 }
 
+function btwByRate(lines: QuoteLine[] | undefined): { pct: string; base: number; amount: number }[] {
+  if (!lines?.length) return []
+  const map = new Map<string, { base: number; amount: number }>()
+  for (const line of lines) {
+    const pct = String(line.btwPercentage ?? "0")
+    const base = parseFloat(String(line.lineTotal)) || 0
+    const rate = (parseFloat(pct) || 0) / 100
+    const amount = base * rate
+    const cur = map.get(pct) || { base: 0, amount: 0 }
+    map.set(pct, { base: cur.base + base, amount: cur.amount + amount })
+  }
+  return Array.from(map.entries())
+    .map(([pct, v]) => ({ pct, ...v }))
+    .sort((a, b) => parseFloat(a.pct) - parseFloat(b.pct))
+}
+
 export function QuotePDF({ quote, company }: QuotePDFProps) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerLeft}>
             <Text style={styles.logo}>
               <Text style={styles.logoAI}>AI</Text>
               <Text style={styles.logoGroup}>-Group.nl</Text>
@@ -200,7 +225,7 @@ export function QuotePDF({ quote, company }: QuotePDFProps) {
             {company?.city && <Text style={{ fontSize: 9, color: "#6B82A8" }}>{company.postalCode} {company.city}</Text>}
             {company?.email && <Text style={{ fontSize: 9, color: "#2D6FE8" }}>{company.email}</Text>}
           </View>
-          <View>
+          <View style={styles.headerRight}>
             <Text style={styles.docTitle}>OFFERTE</Text>
             <Text style={styles.docMeta}>{quote.quoteNumber}</Text>
             <Text style={styles.docMeta}>{fmtDate(quote.createdAt)}</Text>
@@ -251,7 +276,7 @@ export function QuotePDF({ quote, company }: QuotePDFProps) {
           <Text style={[styles.tableHeaderText, styles.colTotal]}>Totaal</Text>
         </View>
         {quote.lines?.map((line, i) => (
-          <View key={i} style={[styles.tableRow, i % 2 === 1 ? { backgroundColor: "#FAFBFF" } : {}]}>
+          <View key={i} wrap={false} style={[styles.tableRow, i % 2 === 1 ? { backgroundColor: "#FAFBFF" } : {}]}>
             <Text style={[styles.tableCell, styles.colDesc]}>{line.description}</Text>
             <Text style={[styles.tableCell, styles.colNum]}>{line.quantity}</Text>
             <Text style={[styles.tableCell, styles.colUnit]}>{line.unit}</Text>
@@ -262,15 +287,32 @@ export function QuotePDF({ quote, company }: QuotePDFProps) {
         ))}
 
         {/* Totals */}
-        <View style={styles.totalsBlock}>
+        <View style={styles.totalsBlock} wrap={false}>
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>Subtotaal</Text>
             <Text style={styles.totalsValue}>{fmt(quote.subtotal)}</Text>
           </View>
-          <View style={styles.totalsRow}>
-            <Text style={styles.totalsLabel}>BTW ({quote.btwPercentage}%)</Text>
-            <Text style={styles.totalsValue}>{fmt(quote.btwAmount)}</Text>
-          </View>
+          {(() => {
+            const rows = btwByRate(quote.lines)
+            if (rows.length <= 1) {
+              return (
+                <View style={styles.totalsRow}>
+                  <Text style={styles.totalsLabel}>
+                    BTW {rows[0] ? `(${rows[0].pct}%)` : `(${quote.btwPercentage}%)`}
+                  </Text>
+                  <Text style={styles.totalsValue}>{fmt(quote.btwAmount)}</Text>
+                </View>
+              )
+            }
+            return rows.map((r) => (
+              <View key={r.pct} style={styles.totalsRow}>
+                <Text style={styles.totalsLabel}>
+                  BTW {r.pct}% over {fmt(r.base)}
+                </Text>
+                <Text style={styles.totalsValue}>{fmt(r.amount)}</Text>
+              </View>
+            ))
+          })()}
           <View style={styles.totalsDivider} />
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Totaal</Text>

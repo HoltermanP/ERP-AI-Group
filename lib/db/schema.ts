@@ -15,6 +15,11 @@ export const companyProfile = pgTable("company_profile", {
   phone: text("phone"),
   website: text("website").default("ai-group.nl"),
   logoUrl: text("logo_url"),
+  emailSignature: text("email_signature"),
+  quoteEmailSubject: text("quote_email_subject"),
+  quoteEmailBody: text("quote_email_body"),
+  invoiceEmailSubject: text("invoice_email_subject"),
+  invoiceEmailBody: text("invoice_email_body"),
   updatedAt: timestamp("updated_at").defaultNow(),
 })
 

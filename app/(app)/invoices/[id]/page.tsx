@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { getInvoice } from "@/lib/actions/invoices"
+import { getCompanyProfile } from "@/lib/actions/company"
+import { buildInvoiceEmailDraft } from "@/lib/email/templates"
+import { isSmtpConfigured } from "@/lib/email/mailer"
+import { SendEmailModal } from "@/components/email/SendEmailModal"
 import { Card, CardHeader, CardBody } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
@@ -20,6 +24,10 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
   const { id } = await params
   const invoice = await getInvoice(parseInt(id))
   if (!invoice) notFound()
+
+  const company = await getCompanyProfile()
+  const emailDraft = buildInvoiceEmailDraft(invoice, company)
+  const smtpConfigured = isSmtpConfigured()
 
   const now = new Date()
   const isOverdue =
@@ -48,6 +56,15 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
           )}
         </div>
         <div className="flex gap-2 flex-wrap">
+          <SendEmailModal
+            kind="invoice"
+            documentId={invoice.id}
+            attachmentName={`${invoice.invoiceNumber}.pdf`}
+            defaultTo={emailDraft.to}
+            defaultSubject={emailDraft.subject}
+            defaultBody={emailDraft.body}
+            smtpConfigured={smtpConfigured}
+          />
           <PDFDownloadButton href={`/api/pdf/invoice/${invoice.id}`} label="PDF" />
           <Link href={`/invoices/${invoice.id}/edit`}>
             <Button variant="secondary" size="sm">

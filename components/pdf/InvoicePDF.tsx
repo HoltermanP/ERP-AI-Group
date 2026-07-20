@@ -11,7 +11,9 @@ import { INVOICE_PAYMENT_TERM_DAYS } from "@/lib/constants/invoicing"
 const styles = StyleSheet.create({
   page: {
     backgroundColor: "#FFFFFF",
-    padding: 40,
+    paddingTop: 40,
+    paddingHorizontal: 40,
+    paddingBottom: 70,
     fontFamily: "Helvetica",
     fontSize: 10,
     color: "#0D1428",
@@ -22,6 +24,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 8,
   },
+  headerLeft: { flex: 1, paddingRight: 20 },
+  headerRight: { width: 220 },
   logo: { fontSize: 20, fontFamily: "Helvetica-Bold" },
   divider: { height: 2, backgroundColor: "#2D6FE8", marginBottom: 20 },
   docTitle: { fontSize: 22, fontFamily: "Helvetica-Bold", color: "#0D1428", textAlign: "right" },
@@ -41,13 +45,13 @@ const styles = StyleSheet.create({
   colBtw: { flex: 0.8, textAlign: "center" },
   colTotal: { flex: 1.2, textAlign: "right" },
   totalsBlock: { alignItems: "flex-end", marginTop: 16 },
-  totalsRow: { flexDirection: "row", justifyContent: "space-between", width: 200, marginBottom: 4 },
-  totalsLabel: { fontSize: 9, color: "#6B82A8" },
-  totalsValue: { fontSize: 9, color: "#0D1428" },
-  totalsDivider: { width: 200, height: 0.5, backgroundColor: "#E0E6F0", marginVertical: 6 },
-  totalRow: { flexDirection: "row", justifyContent: "space-between", width: 200 },
-  totalLabel: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "#0D1428" },
-  totalValue: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "#2D6FE8" },
+  totalsRow: { flexDirection: "row", width: 260, marginBottom: 4 },
+  totalsLabel: { fontSize: 9, color: "#6B82A8", flex: 1, paddingRight: 12 },
+  totalsValue: { fontSize: 9, color: "#0D1428", textAlign: "right" },
+  totalsDivider: { width: 260, height: 0.5, backgroundColor: "#E0E6F0", marginVertical: 6 },
+  totalRow: { flexDirection: "row", alignItems: "flex-end", width: 260 },
+  totalLabel: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "#0D1428", flex: 1, paddingRight: 12 },
+  totalValue: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "#2D6FE8", textAlign: "right" },
   notes: { marginTop: 24, padding: 12, backgroundColor: "#F8FAFF", borderRadius: 4 },
   notesLabel: { fontSize: 9, fontFamily: "Helvetica-Bold", color: "#6B82A8", textTransform: "uppercase", marginBottom: 4 },
   notesText: { fontSize: 9, color: "#0D1428", lineHeight: 1.5 },
@@ -113,7 +117,7 @@ export function InvoicePDF({ invoice, company }: InvoicePDFProps) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerLeft}>
             <Text style={styles.logo}>
               <Text style={{ color: "#2D6FE8" }}>AI</Text>
               <Text style={{ color: "#0D1428" }}>-Group.nl</Text>
@@ -122,7 +126,7 @@ export function InvoicePDF({ invoice, company }: InvoicePDFProps) {
             {company?.city && <Text style={{ fontSize: 9, color: "#6B82A8" }}>{company.postalCode} {company.city}</Text>}
             {company?.email && <Text style={{ fontSize: 9, color: "#2D6FE8" }}>{company.email}</Text>}
           </View>
-          <View>
+          <View style={styles.headerRight}>
             <Text style={styles.docTitle}>FACTUUR</Text>
             <Text style={styles.docMeta}>Factuurnummer: {invoice.invoiceNumber}</Text>
             <Text style={styles.docMeta}>Factuurdatum: {fmtDate(invoice.invoiceDate)}</Text>
@@ -177,7 +181,7 @@ export function InvoicePDF({ invoice, company }: InvoicePDFProps) {
           <Text style={[styles.tableHeaderText, styles.colTotal]}>Bedrag excl. BTW</Text>
         </View>
         {invoice.lines?.map((line, i) => (
-          <View key={i} style={[styles.tableRow, i % 2 === 1 ? { backgroundColor: "#FAFBFF" } : {}]}>
+          <View key={i} wrap={false} style={[styles.tableRow, i % 2 === 1 ? { backgroundColor: "#FAFBFF" } : {}]}>
             <Text style={[styles.tableCell, styles.colDesc]}>{line.description}</Text>
             <Text style={[styles.tableCell, styles.colNum]}>{line.quantity}</Text>
             <Text style={[styles.tableCell, styles.colUnit]}>{line.unit}</Text>
@@ -187,7 +191,7 @@ export function InvoicePDF({ invoice, company }: InvoicePDFProps) {
           </View>
         ))}
 
-        <View style={styles.totalsBlock}>
+        <View style={styles.totalsBlock} wrap={false}>
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>Totaal excl. BTW</Text>
             <Text style={styles.totalsValue}>{fmt(invoice.subtotal)}</Text>

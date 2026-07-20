@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { getQuote } from "@/lib/actions/quotes"
+import { getCompanyProfile } from "@/lib/actions/company"
+import { buildQuoteEmailDraft } from "@/lib/email/templates"
+import { isSmtpConfigured } from "@/lib/email/mailer"
+import { SendEmailModal } from "@/components/email/SendEmailModal"
 import { Card, CardHeader, CardBody } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
@@ -21,6 +25,10 @@ export default async function QuoteDetailPage({ params }: PageProps) {
   const quote = await getQuote(parseInt(id))
   if (!quote) notFound()
 
+  const company = await getCompanyProfile()
+  const emailDraft = buildQuoteEmailDraft(quote, company)
+  const smtpConfigured = isSmtpConfigured()
+
   return (
     <div className="max-w-4xl space-y-6">
       {/* Header */}
@@ -35,6 +43,15 @@ export default async function QuoteDetailPage({ params }: PageProps) {
           <p className="mt-1 text-sm" style={{ color: "#6B82A8" }}>{quote.title}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <SendEmailModal
+            kind="quote"
+            documentId={quote.id}
+            attachmentName={`${quote.quoteNumber}.pdf`}
+            defaultTo={emailDraft.to}
+            defaultSubject={emailDraft.subject}
+            defaultBody={emailDraft.body}
+            smtpConfigured={smtpConfigured}
+          />
           <PDFDownloadButton href={`/api/pdf/quote/${quote.id}`} label="PDF" />
           <Link href={`/quotes/${quote.id}/edit`}>
             <Button variant="secondary" size="sm">
