@@ -25,6 +25,7 @@ export function InvoiceForm({ invoice, preselectedCustomerId, defaultPaymentTerm
   const [error, setError] = useState("")
   const [lines, setLines] = useState<LineItem[]>([])
   const [todayYmd] = useState(() => new Date().toISOString().split("T")[0])
+  const [customerId, setCustomerId] = useState(String(invoice?.customerId || preselectedCustomerId || ""))
 
   useEffect(() => {
     getCustomers().then(setCustomers)
@@ -45,7 +46,7 @@ export function InvoiceForm({ invoice, preselectedCustomerId, defaultPaymentTerm
     setError("")
 
     const form = e.currentTarget
-    const customerId = parseInt((form.elements.namedItem("customerId") as HTMLSelectElement).value)
+    const customerIdNum = parseInt(customerId)
     const title = (form.elements.namedItem("title") as HTMLInputElement).value
     const status = (form.elements.namedItem("status") as HTMLSelectElement).value
     const invoiceDate = (form.elements.namedItem("invoiceDate") as HTMLInputElement).value
@@ -53,7 +54,7 @@ export function InvoiceForm({ invoice, preselectedCustomerId, defaultPaymentTerm
     const notes = (form.elements.namedItem("notes") as HTMLTextAreaElement).value
     const terms = (form.elements.namedItem("terms") as HTMLTextAreaElement).value
 
-    if (!title || !customerId) {
+    if (!title || !customerIdNum) {
       setError("Klant en titel zijn verplicht")
       setLoading(false)
       return
@@ -69,10 +70,10 @@ export function InvoiceForm({ invoice, preselectedCustomerId, defaultPaymentTerm
 
     let result
     if (invoice) {
-      result = await updateInvoice(invoice.id, { customerId, title, status, invoiceDate, dueDate, notes, terms }, lineData)
+      result = await updateInvoice(invoice.id, { customerId: customerIdNum, title, status, invoiceDate, dueDate, notes, terms }, lineData)
     } else {
       result = await createInvoice(
-        { customerId, title, status, invoiceDate, dueDate: dueDate || undefined, notes, terms },
+        { customerId: customerIdNum, title, status, invoiceDate, dueDate: dueDate || undefined, notes, terms },
         lineData
       )
     }
@@ -126,7 +127,8 @@ export function InvoiceForm({ invoice, preselectedCustomerId, defaultPaymentTerm
             <Select
               label="Klant *"
               name="customerId"
-              defaultValue={String(invoice?.customerId || preselectedCustomerId || "")}
+              value={customerId}
+              onChange={(e) => setCustomerId(e.target.value)}
               options={[{ value: "", label: "Selecteer klant..." }, ...customerOptions]}
             />
             <Select
