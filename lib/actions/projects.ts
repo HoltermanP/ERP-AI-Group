@@ -145,6 +145,22 @@ export async function addProjectHour(data: NewProjectHour) {
   }
 }
 
+export async function addProjectHoursBulk(projectId: number, entries: Omit<NewProjectHour, "projectId">[]) {
+  try {
+    const rows = entries.filter((e) => parseFloat(String(e.hours)) > 0)
+    if (rows.length === 0) return { success: true, data: [] }
+    const result = await db
+      .insert(projectHours)
+      .values(rows.map((e) => ({ ...e, projectId })))
+      .returning()
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true, data: result }
+  } catch (error) {
+    console.error("Error bulk adding project hours:", error)
+    return { success: false, error: "Kon uren niet registreren" }
+  }
+}
+
 export async function updateProjectHour(id: number, projectId: number, data: Partial<NewProjectHour>) {
   try {
     const result = await db.update(projectHours).set(data).where(eq(projectHours.id, id)).returning()

@@ -2,12 +2,13 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { addProjectHour, updateProjectHour, deleteProjectHour, addProjectCost, updateProjectCost, deleteProjectCost, addProjectRevenue, deleteProjectRevenue, addProjectEmployee, removeProjectEmployee } from "@/lib/actions/projects"
+import { addProjectHour, addProjectHoursBulk, updateProjectHour, deleteProjectHour, addProjectCost, updateProjectCost, deleteProjectCost, addProjectRevenue, deleteProjectRevenue, addProjectEmployee, removeProjectEmployee } from "@/lib/actions/projects"
 import { Card, CardHeader, CardBody } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils/formatters"
 import { Trash2, Plus, UserPlus, Pencil, Check, X } from "lucide-react"
+import { HoursScheduleGrid, type ScheduleEntry } from "@/components/projects/HoursScheduleGrid"
 import type { Employee } from "@/lib/db/schema"
 
 type ProjectFull = {
@@ -70,6 +71,7 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
   const [saving, setSaving] = useState(false)
   const [editingHourId, setEditingHourId] = useState<number | null>(null)
   const [editingCostId, setEditingCostId] = useState<number | null>(null)
+  const [hourMode, setHourMode] = useState<"single" | "schedule">("single")
 
   const totalHours = hours.reduce((s, h) => s + parseFloat(h.hours), 0)
   const totalCosts = costs.reduce((s, c) => s + parseFloat(c.amount), 0)
@@ -114,6 +116,21 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
       form.reset()
     }
     setSaving(false)
+  }
+
+  async function handleSaveSchedule(entries: ScheduleEntry[]): Promise<boolean> {
+    setSaving(true)
+    const result = await addProjectHoursBulk(project.id, entries)
+    setSaving(false)
+    if (result.success && result.data) {
+      const withEmp = result.data.map((h) => ({
+        ...h,
+        employee: allEmployees.find((e) => e.id === h.employeeId) || null,
+      }))
+      setHours((prev) => [...withEmp, ...prev].sort((a, b) => b.date.localeCompare(a.date)))
+      return true
+    }
+    return false
   }
 
   async function handleDeleteHour(id: number) {
@@ -304,8 +321,35 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
       {tab === "uren" && (
         <div className="space-y-4">
           <Card>
-            <CardHeader><p className="text-sm font-semibold" style={{ color: "#F4F6FA" }}>Uren registreren</p></CardHeader>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <p className="text-sm font-semibold" style={{ color: "#F4F6FA" }}>Uren registreren</p>
+                <div className="flex rounded-md overflow-hidden" style={{ border: "1px solid #1E2130" }}>
+                  {([["single", "Losse regel"], ["schedule", "Weekschema"]] as const).map(([key, lbl]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setHourMode(key)}
+                      className="px-3 py-1 text-xs font-medium"
+                      style={{
+                        background: hourMode === key ? "#2D6FE8" : "#16161C",
+                        color: hourMode === key ? "#fff" : "#6B82A8",
+                      }}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </CardHeader>
             <CardBody>
+              {hourMode === "schedule" ? (
+                <HoursScheduleGrid
+                  employees={projectEmployees.flatMap((pe) => (pe.employee ? [{ id: pe.employee.id, name: pe.employee.name }] : []))}
+                  saving={saving}
+                  onSave={handleSaveSchedule}
+                />
+              ) : (
               <form onSubmit={handleAddHour} className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
                 <div className="space-y-1">
                   <label className="text-xs" style={{ color: "#6B82A8" }}>Datum</label>
@@ -332,6 +376,7 @@ export function ProjectDetailClient({ project, allEmployees }: Props) {
                   <Plus size={14} />Toevoegen
                 </Button>
               </form>
+              )}
             </CardBody>
           </Card>
 
